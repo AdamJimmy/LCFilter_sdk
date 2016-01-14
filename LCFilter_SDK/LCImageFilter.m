@@ -7,7 +7,6 @@
 //
 
 #import "LCImageFilter.h"
-#import "FilterItem.h"
 #import "NETEASELookupFilter.h"
 #import "GPUImagePicture.h"
 #import "GPUImageLookupFilter.h"
@@ -15,25 +14,23 @@
 #import "GPUImageSharpenFilter.h"
 #import "NETEASEAddBlendFilter.h"
 #import "NETEASEMultiplyFilter.h"
-#import <QuartzCore/QuartzCore.h>
-#import <Accelerate/Accelerate.h>
-static CIContext* __ciContext = nil;
-static CGColorSpaceRef __rgbColorSpace = NULL;
-#define NYX_DEGREES_TO_RADIANS(__DEGREES) (__DEGREES * 0.017453293) // (M_PI / 180.0f)
-/* Number of components for an ARGB pixel (Alpha / Red / Green / Blue) = 4 */
-#define kNyxNumberOfComponentsPerARBGPixel 4
+#import "GTMBase64.h"
+#define DEGREES_TO_RADIANS(__DEGREES) (__DEGREES * 0.017453293) // (M_PI / 180.0f)
+static const NSString *CODE = @"encodingFilePath";
 @interface LCImageFilter ()
 @property (nonatomic, strong) NSArray *filterItems;
 
 @end
 @implementation LCImageFilter{
     GPUImageOutput<GPUImageInput> *_output;
+    NSCache *_cache;
 }
 #pragma mark - 滤镜效果
 - (UIImage *)filtOriginImage:(UIImage *)originImage
            withDefaultFilter:(LCOriginalFilter_Type)originFilterType
                         size:(CGSize)size
                        ratio:(CGFloat)ratio{
+
     UIImage *filterImage = [self getFilterImage:originFilterType];
     UIImage *resultImage = nil;
     resultImage = [self filterOriginImage:originImage withFilterImage:filterImage ratio:ratio];
@@ -43,6 +40,21 @@ static CGColorSpaceRef __rgbColorSpace = NULL;
     }
     resultImage = [self resizeImage:resultImage toSize:size];
     return resultImage;
+}
++ (void)filtOriginImage:(UIImage *)originImage
+      withDefaultFilter:(LCOriginalFilter_Type)originFilterType
+                   size:(CGSize)size
+                  ratio:(CGFloat)ratio
+        completionBlock:(void (^)(UIImage *))competionBlock{
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        UIImage *result = [self filtOriginImage:originImage withDefaultFilter:originFilterType size:size ratio:ratio];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (competionBlock) {
+                competionBlock(result);
+            }
+        });
+        
+    });
 }
 #pragma mark-一般的滤镜用这个方法
 - (UIImage *)filterOriginImage:(UIImage *)originImage
@@ -65,6 +77,21 @@ static CGColorSpaceRef __rgbColorSpace = NULL;
     
     return [filter imageFromCurrentFramebuffer];
 }
++ (void)trimOriginImage:(UIImage *)originImage
+        withDefaultTrim:(LCOriginalTrim_Type)originFilterType
+                   size:(CGSize)size
+                  ratio:(CGFloat)ratio
+        completionBlock:(void (^)(UIImage *))competionBlock{
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        UIImage *result = [self trimOriginImage:originImage withDefaultTrim:originFilterType size:size ratio:ratio];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (competionBlock) {
+                competionBlock(result);
+            }
+        });
+
+    });
+}
 #pragma mark - 微调效果
 - (UIImage *)trimOriginImage:(UIImage *)originImage{
     if (!originImage ) {
@@ -79,6 +106,7 @@ static CGColorSpaceRef __rgbColorSpace = NULL;
     
     return [filter imageFromCurrentFramebuffer];
 }
+
 - (UIImage *)trimOriginImage:(UIImage *)originImage withDefaultTrim:(LCOriginalTrim_Type)originFilterType size:(CGSize)size ratio:(CGFloat)ratio{
     UIImage *trimImage = [self getTrimImage:originFilterType withRatio:ratio];
     UIImage *resultImage = nil;
@@ -127,91 +155,92 @@ static CGColorSpaceRef __rgbColorSpace = NULL;
 
         case LCOriginalTrim_ColorTemp:{
             if (ratio>0) {
-                trimImageName = @"temperaturep.jpg";
+                trimImageName = @"temperaturep";
             }else{
-                trimImageName = @"temperaturem.jpg";
+                trimImageName = @"temperaturem";
             }
         }break;
         case LCOriginalTrim_Saturation:{
+            return nil;
             
         }break;
         case LCOriginalTrim_Exposure:{
             if (ratio>0) {
-                trimImageName = @"exposurep.jpg";
+                trimImageName = @"exposurep";
             }else{
-                trimImageName = @"exposurem.jpg";
+                trimImageName = @"exposurem";
             }
         }break;
         case LCOriginalTrim_Contrast:{
             if (ratio>0) {
-                trimImageName = @"contrastp.jpg";
+                trimImageName = @"contrastp";
             }else{
-                trimImageName = @"contrastm.jpg";
+                trimImageName = @"contrastm";
             }
         }break;
         case LCOriginalTrim_Sharpness:{
+            return nil;
 
         }break;
         case LCOriginalTrim_Clarity:{
-            trimImageName = @"clarityp.jpg";
+            trimImageName = @"clarityp";
         }break;
         case LCOriginalTrim_Noise:{
-            trimImageName = @"grain.jpg";
+            trimImageName = @"grain";
         }break;
         case LCOriginalTrim_Dark:{
-            trimImageName = @"vignette.jpg";
+            trimImageName = @"vignette";
         }break;
         case LCOriginalTrim_Hightlight0:{
-            trimImageName = @"highlight0.jpg";
+            trimImageName = @"highlight0";
         }break;
         case LCOriginalTrim_Hightlight1:{
-           trimImageName = @"highlight1.jpg";
+           trimImageName = @"highlight1";
         }break;
         case LCOriginalTrim_Hightlight2:{
-            trimImageName = @"highlight2.jpg";
+            trimImageName = @"highlight2";
         }break;
         case LCOriginalTrim_Hightlight3:{
-            trimImageName = @"highlight3.jpg";
+            trimImageName = @"highlight3";
         }break;
         case LCOriginalTrim_Hightlight4:{
-            trimImageName = @"highlight4.jpg";
+            trimImageName = @"highlight4";
         }break;
         case LCOriginalTrim_Hightlight5:{
-            trimImageName = @"highlight5.jpg";
+            trimImageName = @"highlight5";
         }break;
         case LCOriginalTrim_HightlightOrigin:{
-            trimImageName = @"highlightOrigin.jpg";
+            trimImageName = @"highlightOrigin";
         }break;
         case LCOriginalTrim_ShadeDetail0:{
-            trimImageName = @"darkness0.jpg";
+            trimImageName = @"darkness0";
         }break;
         case LCOriginalTrim_ShadeDetail1:{
-            trimImageName = @"darkness1.jpg";
+            trimImageName = @"darkness1";
         }break;
         case LCOriginalTrim_ShadeDetail2:{
-            trimImageName = @"darkness2.jpg";
+            trimImageName = @"darkness2";
         }break;
         case LCOriginalTrim_ShadeDetail3:{
-            trimImageName = @"darkness3.jpg";
+            trimImageName = @"darkness3";
         }break;
         case LCOriginalTrim_ShadeDetail4:{
-            trimImageName = @"darkness4.jpg";
+            trimImageName = @"darkness4";
         }break;
         case LCOriginalTrim_ShadeDetail5:{
-            trimImageName = @"darkness5.jpg";
+            trimImageName = @"darkness5";
         }break;
         case LCOriginalTrim_ShadeDetailOrigin:{
-            trimImageName = @"darknessOrigin.jpg";
+            trimImageName = @"darknessOrigin";
         }break;
         case LCOriginalTrim_BlurEffect:{
-            trimImageName = @"fade.jpg";
+            trimImageName = @"fade";
         }break;
         default:
             break;
     }
     
     return [self getImageWithImageName:trimImageName];
-//    return [UIImage imageNamed:trimImageName];
     
 }
 
@@ -227,92 +256,164 @@ static CGColorSpaceRef __rgbColorSpace = NULL;
 }
 
 - (UIImage *)getFilterImage:(LCOriginalFilter_Type)originFilterType{
-    FilterItem *item = self.filterItems[originFilterType];
-    return [self getImageWithImageName:item.filterName];
+    NSString *filterName = nil;
+    switch (originFilterType) {
+        case LCOriginalFilter_Jane:
+            filterName = @"jian";
+            break;
+        case LCOriginalFilter_SaltI:
+            filterName = @"yan";
+            break;
+        case LCOriginalFilter_SaltII:
+            filterName = @"yan2";
+            break;
+        case LCOriginalFilter_SaltIII:
+            filterName = @"yan3";
+            break;
+        case LCOriginalFilter_Cyan:
+            filterName = @"qing";
+            break;
+        case LCOriginalFilter_Summer:
+            filterName = @"xia";
+            break;
+        case LCOriginalFilter_MoodGray:
+            filterName = @"hui";
+            break;
+        case LCOriginalFilter_Dusk:
+            filterName = @"mu";
+            break;
+        case LCOriginalFilter_Firefly:
+            filterName = @"ying";
+            break;
+        case LCOriginalFilter_InkI:
+            filterName = @"mo1";
+            break;
+        case LCOriginalFilter_InkII:
+            filterName = @"mo2";
+            break;
+        case LCOriginalFilter_InkIII:
+            filterName = @"mo3";
+            break;
+        case LCOriginalFilter_A1:
+            filterName = @"vsco_a1";
+            break;
+        case LCOriginalFilter_A5:
+            filterName = @"vsco_a5";
+            break;
+        case LCOriginalFilter_A6:
+            filterName = @"vsco_a6";
+        case LCOriginalFilter_A7:
+            filterName = @"vsco_a7";
+            break;
+        case LCOriginalFilter_A8:
+            filterName = @"vsco_a8";
+            break;
+        case LCOriginalFilter_M5:
+            filterName = @"vsco_m5";
+            break;
+        case LCOriginalFilter_J6:
+            filterName = @"vsco_j6";
+            break;
+        case LCOriginalFilter_N1:
+            filterName = @"vsco_n1";
+            break;
+        case LCOriginalFilter_HB1:
+            filterName = @"vsco_hb1";
+            break;
+        case LCOriginalFilter_KK1:
+            filterName = @"vsco_kk1";
+            break;
+        case LCOriginalFilter_T1:
+            filterName = @"vsco_t1";
+            break;
+        case LCOriginalFilter_H5:
+            filterName = @"vsco_h5";
+            break;
+        case LCOriginalFilter_SE1:
+            filterName = @"vsco_se1";
+            break;
+        case LCOriginalFilter_F2:
+            filterName = @"vsco_f2";
+            break;
+            
+        default:
+            break;
+    }
+    return [self getImageWithImageName:filterName];
 }
 
 - (UIImage *)getImageWithImageName:(NSString *)imageName{
-    NSString *bundlePath = [[NSBundle mainBundle].resourcePath stringByAppendingPathComponent:@"LCFilterResources.bundle"];
-    NSBundle *bundle = [NSBundle bundleWithPath:bundlePath];
-    NSString *img_path = [bundle pathForResource:imageName ofType:nil];
-    UIImage *image = [UIImage imageWithContentsOfFile:img_path];
-    
-//    if (image == nil) {
-////        NSLog(@"imageName:%@",imageName);
-////        NSLog(@"bundlePath:%@",bundlePath);
-//        NSLog(@"Path is %@",img_path);
-//        NSLog(@"Error:找不到滤镜色块文件");
-//    }
+
+    if (!_cache) {
+        _cache = [NSCache new];
+    }
+    UIImage *image = nil;
+    NSString *img_path = nil;
+    image = [_cache objectForKey:imageName];
+    if (!image) {
+        NSString *bundlePath = [[NSBundle mainBundle].resourcePath stringByAppendingPathComponent:@"LCFilterResources.bundle"];
+        NSBundle *bundle = [NSBundle bundleWithPath:bundlePath];
+        img_path = [bundle pathForResource:imageName ofType:nil];
+        NSData *dataEncoded = [NSData dataWithContentsOfFile:img_path];
+        NSData *datadecoded = [GTMBase64 decodeData:dataEncoded];
+        //密码字符串
+        NSString *codeFinal = [NSString stringWithFormat:@"%@/%@",CODE,imageName];
+        //密码文件
+        NSData *codeData = [codeFinal dataUsingEncoding:NSUTF8StringEncoding];
+        NSUInteger pre = codeData.length;
+        NSUInteger total = datadecoded.length;
+        NSRange range = {pre,total - pre};
+        //除去加密文件
+        NSData *imData = [datadecoded subdataWithRange:range];
+        image = [UIImage imageWithData:imData];
+        [_cache setObject:image forKey:imageName];
+    }
+
+    if (!image) {
+        NSLog(@"Error:找不到滤镜色块文件,imgPath:%@",img_path);
+        return nil;
+        
+    }
     return image;
 }
 
 #pragma mark - 旋转
-+(UIImage*)rotateInRadians:(float)radians originImage:(UIImage *)image
-{
-    return [self rotateInRadians:radians flipOverHorizontalAxis:NO verticalAxis:NO image:image];
++ (UIImage *)rotateInRadian:(CGFloat)radians image:(UIImage *)image fitSize:(BOOL)fitSize{
+    size_t width = (size_t)CGImageGetWidth(image.CGImage);
+    size_t height = (size_t)CGImageGetHeight(image.CGImage);
+    CGRect newRect = CGRectApplyAffineTransform(CGRectMake(0., 0., width, height),
+                                                fitSize ? CGAffineTransformMakeRotation(radians) : CGAffineTransformIdentity);
+    
+    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+    CGContextRef context = CGBitmapContextCreate(NULL,
+                                                 (size_t)newRect.size.width,
+                                                 (size_t)newRect.size.height,
+                                                 8,
+                                                 (size_t)newRect.size.width * 4,
+                                                 colorSpace,
+                                                 kCGBitmapByteOrderDefault | kCGImageAlphaPremultipliedFirst);
+    CGColorSpaceRelease(colorSpace);
+    if (!context) return nil;
+    
+    CGContextSetShouldAntialias(context, true);
+    CGContextSetAllowsAntialiasing(context, true);
+    CGContextSetInterpolationQuality(context, kCGInterpolationHigh);
+    
+    CGContextTranslateCTM(context, +(newRect.size.width * 0.5), +(newRect.size.height * 0.5));
+    CGContextRotateCTM(context, radians);
+    
+    CGContextDrawImage(context, CGRectMake(-(width * 0.5), -(height * 0.5), width, height), image.CGImage);
+    CGImageRef imgRef = CGBitmapContextCreateImage(context);
+    UIImage *img = [UIImage imageWithCGImage:imgRef scale:image.scale orientation:image.imageOrientation];
+    CGImageRelease(imgRef);
+    CGContextRelease(context);
+    return img;
+
 }
-+(UIImage*)rotateInDegrees:(float)degrees originImage:(UIImage *)image
-{
-    return [self rotateInRadians:(float)NYX_DEGREES_TO_RADIANS(degrees) originImage:image];
++ (UIImage *)rotateInDegree:(CGFloat)degree image:(UIImage *)image fitSize:(BOOL)fitSize{
+    return [self rotateInRadian:DEGREES_TO_RADIANS(degree) image:image fitSize:fitSize];
 }
 
-+(UIImage*)rotateInRadians:(CGFloat)radians flipOverHorizontalAxis:(BOOL)doHorizontalFlip verticalAxis:(BOOL)doVerticalFlip image:(UIImage *)image
-{
-    /// Create an ARGB bitmap context
-    const size_t width = (size_t)CGImageGetWidth(image.CGImage);
-    const size_t height = (size_t)CGImageGetHeight(image.CGImage);
-    
-    CGRect rotatedRect = CGRectApplyAffineTransform(CGRectMake(0., 0., width, height), CGAffineTransformMakeRotation(radians));
-    
-    CGContextRef bmContext = NYXCreateARGBBitmapContext((size_t)rotatedRect.size.width, (size_t)rotatedRect.size.height, (size_t)rotatedRect.size.width * kNyxNumberOfComponentsPerARBGPixel, YES);
-    if (!bmContext)
-        return nil;
-    
-    /// Image quality
-    CGContextSetShouldAntialias(bmContext, true);
-    CGContextSetAllowsAntialiasing(bmContext, true);
-    CGContextSetInterpolationQuality(bmContext, kCGInterpolationHigh);
-    
-    /// Rotation happen here (around the center)
-    CGContextTranslateCTM(bmContext, +(rotatedRect.size.width / 2.0f), +(rotatedRect.size.height / 2.0f));
-    CGContextRotateCTM(bmContext, radians);
-    
-    // Do flips
-    CGContextScaleCTM(bmContext, (doHorizontalFlip ? -1.0f : 1.0f), (doVerticalFlip ? -1.0f : 1.0f));
-    
-    /// Draw the image in the bitmap context
-    CGContextDrawImage(bmContext, CGRectMake(-(width / 2.0f), -(height / 2.0f), width, height), image.CGImage);
-    
-    /// Create an image object from the context
-    CGImageRef resultImageRef = CGBitmapContextCreateImage(bmContext);
-    
-    UIImage* resultImage = [UIImage imageWithCGImage:resultImageRef scale:image.scale orientation:image.imageOrientation];
-    
-    /// Cleanup
-    CGImageRelease(resultImageRef);
-    CGContextRelease(bmContext);
-    
-    return resultImage;
-}
-
-CGContextRef NYXCreateARGBBitmapContext(const size_t width, const size_t height, const size_t bytesPerRow, BOOL withAlpha)
-{
-    /// Use the generic RGB color space
-    /// We avoid the NULL check because CGColorSpaceRelease() NULL check the value anyway, and worst case scenario = fail to create context
-    /// Create the bitmap context, we want pre-multiplied ARGB, 8-bits per component
-    CGImageAlphaInfo alphaInfo = (withAlpha ? kCGImageAlphaPremultipliedFirst : kCGImageAlphaNoneSkipFirst);
-    CGContextRef bmContext = CGBitmapContextCreate(NULL, width, height, 8/*Bits per component*/, bytesPerRow, NYXGetRGBColorSpace(), kCGBitmapByteOrderDefault | alphaInfo);
-    
-    return bmContext;
-}
-CGColorSpaceRef NYXGetRGBColorSpace(void)
-{
-    if (!__rgbColorSpace)
-    {
-        __rgbColorSpace = CGColorSpaceCreateDeviceRGB();
-    }
-    return __rgbColorSpace;
-}
 #pragma mark - 剪切
 +(UIImage *)cropToRect:(CGRect)newRect originImage:(UIImage *)image
 {
@@ -351,25 +452,7 @@ CGColorSpaceRef NYXGetRGBColorSpace(void)
     CGRect rect = CGRectMake(ratioX*image.size.width, ratioY*image.size.height, rationW*image.size.width, rationH*image.size.height);
     return [self cropToRect:rect originImage:image];
 }
-#pragma mark - 懒加载
 
-- (NSArray *)filterItems{
-    if (_filterItems == nil) {
-        NSString *bundlePath = [[NSBundle mainBundle].resourcePath stringByAppendingPathComponent:@"LCFilterResources.bundle"];
-        NSBundle *bundle = [NSBundle bundleWithPath:bundlePath];
-        NSString *path = [bundle pathForResource:@"Filters" ofType:@"plist"];
-        NSArray *array = [NSArray arrayWithContentsOfFile:path];
-        NSMutableArray *filters = [NSMutableArray array];
-        for (NSDictionary *dic  in array) {
-            FilterItem *filterItem = [FilterItem filterItemWithDict:dic];
-            [filters addObject:filterItem];
-        }
-        _filterItems = filters;
- 
-    }
-    return _filterItems;
-    
-}
 #pragma mark - 类方法
 
 + (instancetype)shareLCImageFilterManager{

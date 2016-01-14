@@ -15,7 +15,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "E6B6F92D1C33D73E005D1652"
-               BuildableName = "libsimu_LCFilter_SDK.a"
+               BuildableName = "libOs_LCFilter_SDK.a"
                BlueprintName = "LCFilter_SDK"
                ReferencedContainer = "container:LCFilter_SDK.xcodeproj">
             </BuildableReference>
@@ -46,7 +46,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "E6B6F92D1C33D73E005D1652"
-            BuildableName = "libsimu_LCFilter_SDK.a"
+            BuildableName = "libOs_LCFilter_SDK.a"
             BlueprintName = "LCFilter_SDK"
             ReferencedContainer = "container:LCFilter_SDK.xcodeproj">
          </BuildableReference>
@@ -64,7 +64,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "E6B6F92D1C33D73E005D1652"
-            BuildableName = "libsimu_LCFilter_SDK.a"
+            BuildableName = "libOs_LCFilter_SDK.a"
             BlueprintName = "LCFilter_SDK"
             ReferencedContainer = "container:LCFilter_SDK.xcodeproj">
          </BuildableReference>
