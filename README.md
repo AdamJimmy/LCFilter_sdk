@@ -1,9 +1,5 @@
 # LCFilter_sdk
 滤镜处理和微调处理
-#联系
-**业务需求** 肖军军(hzxiaojunjun@corp.netease.com)
-**技术支持** 姜欧(hzjiangou@corp.netease.com)
-**技术支持** 金立涨(hzjinlizhang@corp.netease.com)
 
 #使用
 添加框架 **QuartzCore、AVFoundation、OpenGLES、CoreVideo、CoreMedia** ，将 **LCFilter_Demo / LCFilter-Lofter / SDK/** 中的文件添加到工程中
